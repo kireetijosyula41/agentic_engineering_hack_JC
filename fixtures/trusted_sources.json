@@ -1,0 +1,42 @@
+[
+  {
+    "source_id": "uhc_commercial_medical_drug_policies",
+    "payer": "UnitedHealthcare",
+    "plan": "Commercial",
+    "procedure_keywords": ["mri", "lumbar", "spine", "advanced imaging", "prior authorization", "commercial"],
+    "approved_url": "https://www.uhcprovider.com/en/policies-protocols/commercial-policies/commercial-medical-drug-policies.html?rfid=UHCOContRD",
+    "trusted": true,
+    "baseline_fixture": "policy_snapshot_old_1.txt",
+    "latest_fixture": "policy_snapshot_new_1.txt"
+  },
+  {
+    "source_id": "uhc_medicare_advantage_medical_policies",
+    "payer": "UnitedHealthcare",
+    "plan": "Medicare Advantage",
+    "procedure_keywords": ["mri", "lumbar", "spine", "advanced imaging", "prior authorization", "medicare advantage"],
+    "approved_url": "https://www.uhcprovider.com/en/policies-protocols/medicare-advantage-policies/medicare-advantage-medical-policies.html",
+    "trusted": true,
+    "baseline_fixture": "policy_snapshot_old_2.txt",
+    "latest_fixture": "policy_snapshot_new_2.txt"
+  },
+  {
+    "source_id": "uhc_medicaid_community_state_policies",
+    "payer": "UnitedHealthcare",
+    "plan": "Medicaid",
+    "procedure_keywords": ["mri", "lumbar", "spine", "advanced imaging", "prior authorization", "medicaid"],
+    "approved_url": "https://www.uhcprovider.com/en/policies-protocols/comm-plan-medicaid-policies/medicaid-community-state-policies.html",
+    "trusted": true,
+    "baseline_fixture": "policy_snapshot_old_2.txt",
+    "latest_fixture": "policy_snapshot_new_2.txt"
+  },
+  {
+    "source_id": "uhc_prior_auth_advance_notification",
+    "payer": "UnitedHealthcare",
+    "plan": "Commercial",
+    "procedure_keywords": ["prior authorization", "advance notification", "mri", "lumbar", "spine", "advanced imaging"],
+    "approved_url": "https://www.uhcprovider.com/en/prior-auth-advance-notification.html",
+    "trusted": true,
+    "baseline_fixture": "policy_snapshot_old_2.txt",
+    "latest_fixture": "policy_snapshot_new_2.txt"
+  }
+]

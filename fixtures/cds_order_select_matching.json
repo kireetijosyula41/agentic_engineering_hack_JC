@@ -1,0 +1,15 @@
+{
+  "hook": "order-select",
+  "context": {
+    "payer": "UnitedHealthcare",
+    "plan": "Commercial",
+    "procedure": "MRI lumbar spine without contrast",
+    "procedure_codes": ["72148"],
+    "provider_action": "ordering advanced imaging",
+    "patient_context": {
+      "encounter_id": "enc-100",
+      "patient_id": "pt-001"
+    }
+  }
+}
+

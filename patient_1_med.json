@@ -1,0 +1,16 @@
+{
+  "hook": "order-sign",
+  "context": {
+    "payer": "BlueCross",
+    "plan": "PPO",
+    "procedure": "Metformin refill",
+    "procedure_codes": ["J8499"],
+    "provider_action": "signing medication order",
+    "patient_context": {
+      "encounter_id": "enc-202",
+      "patient_id": "pt-1002",
+      "doctor_id": "dr-bcbs-01",
+      "diagnosis": "Type 2 diabetes mellitus"
+    }
+  }
+}

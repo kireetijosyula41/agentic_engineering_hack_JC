@@ -1,0 +1,15 @@
+{
+  "hook": "order-sign",
+  "context": {
+    "payer": "BlueCross",
+    "plan": "PPO",
+    "procedure": "X-ray knee",
+    "procedure_codes": ["73560"],
+    "provider_action": "signing radiology order",
+    "patient_context": {
+      "encounter_id": "enc-102",
+      "patient_id": "pt-003"
+    }
+  }
+}
+

@@ -1,0 +1,11 @@
+{
+  "items": [
+    "Signed provider order",
+    "Diagnosis code supporting medical necessity",
+    "Six weeks of conservative therapy documentation",
+    "Prior imaging report or rationale for new imaging",
+    "Relevant clinical notes"
+  ],
+  "grounded_note": "Checklist returned from the Senso grounding layer using the active policy change and current clinical trigger."
+}
+

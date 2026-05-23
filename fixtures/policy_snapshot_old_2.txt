@@ -1,0 +1,5 @@
+Advanced imaging policy revision 2025-12
+
+CT abdomen reviews are processed under the current outpatient guideline.
+Formatting updated for section numbering.
+

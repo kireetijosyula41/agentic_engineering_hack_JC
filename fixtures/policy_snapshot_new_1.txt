@@ -1,0 +1,6 @@
+Advanced imaging policy revision 2026-05
+
+MRI lumbar spine requests require prior authorization with provider order and diagnosis documentation.
+Six weeks of conservative therapy documentation is required before routine outpatient approval.
+Clinical notes and prior imaging evidence are required for medical necessity review.
+

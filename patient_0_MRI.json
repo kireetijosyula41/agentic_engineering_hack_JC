@@ -1,0 +1,16 @@
+{
+  "hook": "order-sign",
+  "context": {
+    "payer": "UnitedHealthcare",
+    "plan": "Commercial",
+    "procedure": "MRI lumbar spine without contrast",
+    "procedure_codes": ["72148"],
+    "provider_action": "signing imaging order",
+    "patient_context": {
+      "encounter_id": "enc-201",
+      "patient_id": "pt-1001",
+      "doctor_id": "dr-uhc-01",
+      "diagnosis": "Lumbar radiculopathy with persistent low back pain after failed conservative therapy"
+    }
+    }
+}
