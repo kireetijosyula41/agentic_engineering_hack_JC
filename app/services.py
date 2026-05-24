@@ -69,7 +69,7 @@ class PolicyPulseService:
         )
 
     def get_active_policy_changes(self) -> list[ActivePolicyChange]:
-        recent_policy_changes = self.store.get_recent_policy_changes(limit=25)
+        recent_policy_changes = self.store.get_recent_policy_changes(limit=100)
         if recent_policy_changes:
             changes = [ActivePolicyChange(**item["payload"]) if "payload" in item else ActivePolicyChange(**item) for item in recent_policy_changes]
             return [change for change in changes if change.materiality.classification in {"material", "ambiguous"}]
@@ -77,6 +77,21 @@ class PolicyPulseService:
             return []
         payload = json.loads(self.active_changes_path.read_text(encoding="utf-8"))
         return [ActivePolicyChange(**item) for item in payload]
+
+    def get_displayed_policy_change(self) -> ActivePolicyChange | None:
+        monitored_source_ids = list(self._monitor_state.get("monitored_source_ids") or [])
+        selected_source_id = monitored_source_ids[0] if monitored_source_ids else self.get_default_source_id()
+        if not selected_source_id:
+            return None
+        view = self.get_policy_monitor_view(selected_source_id)
+        policy_change = view.get("policy_change")
+        if not policy_change:
+            return None
+        payload = policy_change.get("payload", policy_change)
+        try:
+            return ActivePolicyChange(**payload)
+        except Exception:
+            return None
 
     def log_event(self, event_type: str, payload: dict[str, Any]) -> None:
         self.store.log_event(AgentEvent(event_type=event_type, payload=payload))
@@ -221,6 +236,21 @@ class PolicyPulseService:
         self.log_event("policy_snapshot_seeded", previous_snapshot.model_dump(mode="json"))
         self.log_event("policy_snapshot_saved", current_snapshot.model_dump(mode="json"))
 
+        # If Nimble can fetch the live page, save it as the authoritative current snapshot
+        # so the background monitor compares live→live on subsequent scans and finds no change.
+        # Without this, the monitor would diff fixture→live and overwrite the meaningful MRI diff.
+        live_doc = self.nimble._fetch_live(source)
+        if live_doc is not None:
+            live_snapshot = PolicySnapshot(
+                source_id=source.source_id,
+                payer=source.payer,
+                content_hash=hash_content(live_doc.content),
+                normalized_content=live_doc.content,
+                via=live_doc.via,
+            )
+            self.store.save_snapshot(live_snapshot)
+            self.log_event("policy_snapshot_saved", live_snapshot.model_dump(mode="json"))
+
         diff = compute_policy_diff(
             source_id=source.source_id,
             payer=source.payer,
@@ -358,16 +388,22 @@ class PolicyPulseService:
                     documentation_required=self._extract_documentation_requirements(diff.changed_lines),
                     changed_section=self._extract_changed_section(latest.content),
                 )
-                change_record = self._build_policy_change_record(active_change)
-                self.store.save_policy_change(change_record)
-                self.log_event("policy_change_recorded", change_record.model_dump(mode="json"))
+                if materiality.classification in {"material", "ambiguous"}:
+                    change_record = self._build_policy_change_record(active_change)
+                    self.store.save_policy_change(change_record)
+                    self.log_event("policy_change_recorded", change_record.model_dump(mode="json"))
+                    active_changes.append(active_change)
+                else:
+                    self.log_event("policy_change_non_material", {"source_id": source.source_id, "summary": diff.summary})
                 latest_materiality = materiality.classification
                 latest_summary = diff.summary
-                if materiality.classification in {"material", "ambiguous"}:
-                    active_changes.append(active_change)
 
-            all_active_changes = self.get_active_policy_changes()
-            self._save_active_changes(all_active_changes)
+            # Merge new material changes with existing watchlist so non_material
+            # scans don't wipe out previously detected material changes.
+            existing_active = self.get_active_policy_changes()
+            new_source_ids = {c.source_id for c in active_changes}
+            merged_active = [c for c in existing_active if c.source_id not in new_source_ids] + active_changes
+            self._save_active_changes(merged_active)
             result = "changes_detected" if changed_sources else "no_changes_detected"
             self.log_event(
                 "monitor_scan_completed",
@@ -405,7 +441,11 @@ class PolicyPulseService:
         return trigger
 
     def evaluate_crd(self, trigger: ClinicalTriggerEvent) -> CRDDecision:
-        decision = evaluate_crd_opportunity(trigger, self.get_active_policy_changes())
+        displayed_change = self.get_displayed_policy_change()
+        candidate_changes = [displayed_change] if displayed_change is not None else []
+        if not candidate_changes:
+            candidate_changes = self.get_active_policy_changes()
+        decision = evaluate_crd_opportunity(trigger, candidate_changes)
         self.log_event("crd_evaluated", decision.model_dump(mode="json"))
         if decision.route == "crd_guidance_ready":
             self.log_event("crd_guidance_ready", decision.model_dump(mode="json"))
@@ -466,6 +506,9 @@ class PolicyPulseService:
         }
 
     def _find_policy_change(self, watch_id: str | None) -> ActivePolicyChange:
+        displayed_change = self.get_displayed_policy_change()
+        if displayed_change is not None and displayed_change.watch_id == watch_id:
+            return displayed_change
         for item in self.get_active_policy_changes():
             if item.watch_id == watch_id:
                 return item

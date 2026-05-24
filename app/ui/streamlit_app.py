@@ -15,7 +15,10 @@ FIXTURES_DIR = Path(__file__).resolve().parents[2] / "fixtures"
 
 
 def post_json(path: str, payload: dict | None = None):
-    response = requests.post(f"{API_BASE}{path}", json=payload or {}, timeout=60)
+    try:
+        response = requests.post(f"{API_BASE}{path}", json=payload or {}, timeout=60)
+    except requests.exceptions.ConnectionError:
+        return {"error": f"API server not reachable at {API_BASE}. Start it with: uvicorn app.api.main:app --reload"}
     if response.status_code >= 400:
         try:
             return {"error": response.json()}
@@ -25,9 +28,12 @@ def post_json(path: str, payload: dict | None = None):
 
 
 def get_json(path: str):
-    response = requests.get(f"{API_BASE}{path}", timeout=60)
-    response.raise_for_status()
-    return response.json()
+    try:
+        response = requests.get(f"{API_BASE}{path}", timeout=60)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.ConnectionError:
+        return {}
 
 
 def load_fixture(name: str) -> dict:

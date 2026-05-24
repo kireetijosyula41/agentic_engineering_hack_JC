@@ -10,13 +10,14 @@ from typing import Any
 from app.models import ActivePolicyChange, ClinicalTriggerEvent, ReadinessCard, ReadinessChecklist, SensoPublishResult
 
 
-CITED_MD_PUBLISHER_ID = "afa1052b-8226-438c-895e-335dcf21743a"
-
-
 class SensoAdapter:
     def __init__(self, fixtures_dir: Path) -> None:
         self.fixtures_dir = fixtures_dir
         self.last_error: str | None = None
+
+    @property
+    def cited_md_publisher_id(self) -> str:
+        return os.environ.get("SENSO_CITED_MD_PUBLISHER_ID", "")
 
     def query_senso_checklist(self, payer: str, procedure: str, policy_context: dict) -> ReadinessChecklist:
         live_checklist = self._query_live(payer=payer, procedure=procedure)
@@ -39,11 +40,18 @@ class SensoAdapter:
         checklist: ReadinessChecklist,
         card: ReadinessCard,
     ) -> SensoPublishResult:
+        publisher_id = self.cited_md_publisher_id
         if not os.environ.get("SENSO_API_KEY"):
             return SensoPublishResult(
                 success=False,
-                publisher_id=CITED_MD_PUBLISHER_ID,
+                publisher_id=publisher_id,
                 message="SENSO_API_KEY is not set.",
+            )
+        if not publisher_id:
+            return SensoPublishResult(
+                success=False,
+                publisher_id="",
+                message="SENSO_CITED_MD_PUBLISHER_ID is not set.",
             )
 
         generation_result = self._run_senso_command(
@@ -57,7 +65,7 @@ class SensoAdapter:
         if not generation_result["success"]:
             return SensoPublishResult(
                 success=False,
-                publisher_id=CITED_MD_PUBLISHER_ID,
+                publisher_id=publisher_id,
                 message=f"Failed to enable Senso content generation: {generation_result['message']}",
                 raw_response=generation_result.get("raw_response", {}),
             )
@@ -82,7 +90,7 @@ class SensoAdapter:
         if not question_result["success"]:
             return SensoPublishResult(
                 success=False,
-                publisher_id=CITED_MD_PUBLISHER_ID,
+                publisher_id=publisher_id,
                 message=f"Failed to create Senso question: {question_result['message']}",
                 raw_response=question_result.get("raw_response", {}),
             )
@@ -91,7 +99,7 @@ class SensoAdapter:
         if not question_id:
             return SensoPublishResult(
                 success=False,
-                publisher_id=CITED_MD_PUBLISHER_ID,
+                publisher_id=publisher_id,
                 message="Senso question was created, but no question ID was returned.",
                 raw_response=question_result["raw_response"],
             )
@@ -102,7 +110,7 @@ class SensoAdapter:
             "raw_markdown": markdown,
             "seo_title": f"{clinical_trigger.payer} {clinical_trigger.procedure} readiness card",
             "summary": policy_change.diff.summary,
-            "publisher_ids": [CITED_MD_PUBLISHER_ID],
+            "publisher_ids": [publisher_id],
         }
         publish_result = self._run_senso_command(
             [
@@ -111,13 +119,13 @@ class SensoAdapter:
                 "--data",
                 json.dumps(publish_payload),
                 "--publisher-ids",
-                CITED_MD_PUBLISHER_ID,
+                publisher_id,
             ]
         )
         if not publish_result["success"]:
             return SensoPublishResult(
                 success=False,
-                publisher_id=CITED_MD_PUBLISHER_ID,
+                publisher_id=publisher_id,
                 question_id=question_id,
                 message=f"Failed to publish to cited.md: {publish_result['message']}",
                 raw_response=publish_result.get("raw_response", {}),
@@ -131,7 +139,7 @@ class SensoAdapter:
                 published_url = destinations[0].get("display_url")
         return SensoPublishResult(
             success=True,
-            publisher_id=CITED_MD_PUBLISHER_ID,
+            publisher_id=publisher_id,
             question_id=question_id,
             content_id=self._extract_first_id(raw_response, ["content_id", "contentId", "id"]),
             publish_record_id=self._extract_first_id(raw_response, ["publish_record_id", "publishRecordId"]),
